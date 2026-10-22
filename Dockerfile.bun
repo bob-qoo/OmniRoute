@@ -84,6 +84,14 @@ RUN mkdir -p /app/data
 
 COPY --from=builder /app/.build/next/standalone ./
 
+# Next.js standalone file-tracing flattens bun's isolated .bun store into plain
+# directories, dropping the per-package links bun needs to resolve modules at
+# runtime (e.g. @next/env, pino-std-serializers) and crashing the server on
+# boot. Restore the builder's intact node_modules so the runtime resolves
+# exactly as it did during the build.
+RUN rm -rf ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
+
 ENV OMNIROUTE_MIGRATIONS_DIR=/app/migrations
 
 COPY --from=builder /app/scripts/dev/healthcheck.mjs ./healthcheck.mjs
@@ -118,7 +126,6 @@ RUN apt-get update \
      chromium-driver \
      fonts-liberation \
      libasound2t64 \
-     gconf-service \
      libatk-bridge2.0-0 \
      libatk1.0-0 \
      libc6 \
@@ -135,7 +142,7 @@ RUN apt-get update \
      libnss3 \
      libpango-1.0-0 \
      pangocairo-1.0-0 \
-     stdc++6 \
+     libstdc++6 \
      libx11-6 \
      libx11-xcb1 \
      libxcb1 \
@@ -152,7 +159,6 @@ RUN apt-get update \
      ca-certificates \
      fonts-gargi \
      fonts-ipafont-gothic \
-     fonts-kacst \
      fonts-thai-tlwg \
      fonts-wqy-zenhei \
   && rm -rf /var/lib/apt/lists/*
